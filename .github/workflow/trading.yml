@@ -1,0 +1,44 @@
+name: Wealth Advisor Trading Bot
+on:
+  schedule:
+    - cron: '0 11 * * 1-5'
+    - cron: '0 13-20 * * 1-5'
+    - cron: '45 19 * * 1-5'
+  workflow_dispatch:
+    inputs:
+      script:
+        description: 'Force: premarket | hourly | status | eod'
+        required: false
+        default: ''
+
+jobs:
+  run:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      - name: Route and run
+        env:
+          ALPACA_KEY:     ${{ secrets.ALPACA_KEY }}
+          ALPACA_SECRET:  ${{ secrets.ALPACA_SECRET }}
+          PUSHOVER_TOKEN: ${{ secrets.PUSHOVER_TOKEN }}
+          PUSHOVER_USER:  ${{ secrets.PUSHOVER_USER }}
+          GH_TOKEN:       ${{ secrets.GH_TOKEN }}
+        run: |
+          FORCE="${{ github.event.inputs.script }}"
+          HOUR=$(date -u +%-H)
+          MIN=$(date -u +%-M)
+          if   [ "$FORCE" = "premarket" ]; then python scripts/premarket.py
+          elif [ "$FORCE" = "status"    ]; then python scripts/status_10am.py
+          elif [ "$FORCE" = "eod"       ]; then python scripts/eod_review.py
+          elif [ "$FORCE" = "hourly"    ]; then python scripts/hourly_monitor.py
+          elif [ "$HOUR"  = "11"        ]; then python scripts/premarket.py
+          elif [ "$HOUR"  = "19" ] && [ "$MIN" -ge 44 ]; then python scripts/eod_review.py
+          elif [ "$HOUR"  = "14"        ]; then
+            python scripts/status_10am.py
+            python scripts/hourly_monitor.py
+          else
+            python scripts/hourly_monitor.py
+          fi
