@@ -1,0 +1,22 @@
+name: Hourly Market Monitor
+on:
+  schedule:
+    - cron: '0 13-20 * * 1-5'   # 9 AM â€“ 4 PM ET (EDT=UTC-4)
+  workflow_dispatch:
+
+jobs:
+  run:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      - name: Hourly monitor
+        env:
+          ALPACA_KEY:     ${{ secrets.ALPACA_KEY }}
+          ALPACA_SECRET:  ${{ secrets.ALPACA_SECRET }}
+          PUSHOVER_TOKEN: ${{ secrets.PUSHOVER_TOKEN }}
+          PUSHOVER_USER:  ${{ secrets.PUSHOVER_USER }}
+          GH_TOKEN:       ${{ secrets.GH_TOKEN }}
+        run: python scripts/hourly_monitor.py
